@@ -1,22 +1,29 @@
 def get_request_info(parsed_logs):
     total_requests = 0
-    status_counts ={}
-    endp_counts = {}
+    status_counts = {}
+    endpoint_counts = {}
 
     for entry in parsed_logs:
         if entry["type"] == "request":
-            total_requests+=1
-            endp_counts[entry["endpoint"]] = endp_counts.get(entry["endpoint"], 0) + 1
-            status_counts[entry['status']] = status_counts.get(entry['status'],0) + 1
+            total_requests += 1
 
-            if entry["endpoint"] not in endp_counts:
-                endp_counts[entry["endpoint"]] = {"GET": 0, "POST": 0}
+            # Count status
+            status = entry["status"]
+            status_counts[status] = status_counts.get(status, 0) + 1
 
-            endp_counts[entry["endpoint"]][entry["method"]] += 1
+            # Endpoint GET vs POST
+            endpoint = entry["endpoint"]
+            method = entry["method"]
+
+            if endpoint not in endpoint_counts:
+                endpoint_counts[endpoint] = {"GET": 0, "POST": 0}
+
+            endpoint_counts[endpoint][method] += 1
+
     return {
-        "total_requests":total_requests,
+        "total_requests": total_requests,
         "status_counts": status_counts,
-        "endpoint_counts": endp_counts
+        "endpoint_counts": endpoint_counts
     }
 
 def get_performance_metrics(parsed_logs):
@@ -53,7 +60,6 @@ def get_performance_metrics(parsed_logs):
         "fail": fail_metrics
     }
 
-
 def get_user_info(parsed_logs):
     unique_users = set()
     user_yearwise ={}
@@ -70,4 +76,65 @@ def get_user_info(parsed_logs):
     return{
         "unique_users":len(unique_users),
         "users_yearwise":user_year_count
+    }
+
+def get_application_insights(parsed_logs):
+    strategy = None
+    generation_attempts = 0
+    total_found = 0
+    strategy_counts = {}
+
+    for entry in parsed_logs:
+        if entry["type"] == "algorithm":
+            strategy = entry["algo"]
+
+        elif entry["type"] == "summary":
+            generation_attempts += 1
+            total_found += entry["found"]
+
+            used = strategy if strategy else "Unknown"
+            strategy_counts[used] = strategy_counts.get(used, 0) + 1
+
+            strategy = None
+
+    avg_found = total_found / generation_attempts if generation_attempts else 0
+
+    return {
+        "total_found": total_found,
+        "generation_attempts": generation_attempts,
+        "avg_found": avg_found,
+        "strategy_counts": strategy_counts
+    }
+
+def get_misc_info(parsed_logs):
+    malformed_count = 0
+    connect_count = 0
+    recaptcha_errors = 0
+    recaptcha_fails = 0
+    recaptcha_fail_scores = []
+    recaptcha_fail_actions = {}
+
+    for entry in parsed_logs:
+        if entry["type"] == "malformed":
+            malformed_count += 1
+
+        elif entry["type"] == "connect":
+            connect_count += 1
+
+        elif entry["type"] == "recaptcha_error":
+            recaptcha_errors += 1
+
+        elif entry["type"] == "recaptcha_fail":
+            recaptcha_fails += 1
+            recaptcha_fail_scores.append(entry["score"])
+            action = entry["action"] or "unknown"
+            recaptcha_fail_actions[action] = recaptcha_fail_actions.get(action, 0) + 1
+
+    return {
+        "malformed_requests": malformed_count,
+        "connect_attempts": connect_count,
+        "recaptcha_errors": recaptcha_errors,
+        "recaptcha_fails": recaptcha_fails,
+        "recaptcha_fail_scores": recaptcha_fail_scores,
+        "recaptcha_fail_actions": recaptcha_fail_actions
     }
