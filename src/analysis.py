@@ -4,22 +4,29 @@ def get_request_info(parsed_logs):
     endpoint_counts = {}
 
     for entry in parsed_logs:
-        if entry["type"] == "request":
-            total_requests += 1
+        try:
+            if entry["type"] == "request":
+                total_requests += 1
 
-            # Count status
-            status = entry["status"]
-            status_counts[status] = status_counts.get(status, 0) + 1
+                #Count status
+                status = entry["status"]
+                status_counts[status] = status_counts.get(status, 0) + 1
 
-            # Endpoint GET vs POST
-            endpoint = entry["endpoint"]
-            method = entry["method"]
+                endpoint = entry["endpoint"]
+                method = entry["method"]
 
-            if endpoint not in endpoint_counts:
-                endpoint_counts[endpoint] = {"GET": 0, "POST": 0}
+                #All important stats
+                if endpoint not in endpoint_counts:
+                    endpoint_counts[endpoint] = {"GET": 0, "POST": 0, "total":0, "percentage":0}
 
-            endpoint_counts[endpoint][method] += 1
+                endpoint_counts[endpoint][method] += 1
+                endpoint_counts[endpoint]["total"] += 1
+        except Exception as e:
+            print(f"Warning: Failed to process entry: {entry}\n  Reason: {e}")
 
+    for endpoint, data in endpoint_counts.items():
+        if total_requests>0:
+            data["percent"] = (data["total"]/total_requests)*100
     return {
         "total_requests": total_requests,
         "status_counts": status_counts,
@@ -31,21 +38,24 @@ def get_performance_metrics(parsed_logs):
     times_fail = {}
 
     for entry in parsed_logs:
-        if entry["type"] == "request":
-            endpoint = entry["endpoint"]
-            t = entry["time_ms"]
-            status = entry["status"]
+        try:
+            if entry["type"] == "request":
+                endpoint = entry["endpoint"]
+                t = entry["time_ms"]
+                status = entry["status"]
+                #Call status other than 200 are very quick, seperating them
+                if status == 200:
+                    if endpoint not in times_success:
+                        times_success[endpoint] = []
+                    times_success[endpoint].append(t)
+                else:
+                    if endpoint not in times_fail:
+                        times_fail[endpoint] = []
+                    times_fail[endpoint].append(t)
+        except Exception as e:
+            print(f"Warning: Failed to process entry: {entry}\n  Reason: {e}")
 
-            if status == 200:
-                if endpoint not in times_success:
-                    times_success[endpoint] = []
-                times_success[endpoint].append(t)
-            else:
-                if endpoint not in times_fail:
-                    times_fail[endpoint] = []
-                times_fail[endpoint].append(t)
-
-    # Build stats
+    #Build stats
     def make_stats(time_list):
         return {
             "avg": sum(time_list) / len(time_list),
@@ -64,13 +74,17 @@ def get_user_info(parsed_logs):
     unique_users = set()
     user_yearwise ={}
     for entry in parsed_logs:
-        if entry["type"]=="user":
-            user_id = entry['user_id']
-            year = user_id[:4]
+        try:
+            if entry["type"]=="user":
+                user_id = entry['user_id']
+                #Grabbling Year
+                year = user_id[:4]
 
-            unique_users.add(user_id)
-            user_yearwise[year] = user_yearwise.get(year, set())
-            user_yearwise[year].add(user_id)
+                unique_users.add(user_id)
+                user_yearwise[year] = user_yearwise.get(year, set())
+                user_yearwise[year].add(user_id)
+        except Exception as e:
+            print(f"Warning: Failed to process entry: {entry}\n  Reason: {e}")
 
     user_year_count={year: len(ids) for year, ids in user_yearwise.items()}
     return{
@@ -78,24 +92,27 @@ def get_user_info(parsed_logs):
         "users_yearwise":user_year_count
     }
 
-def get_application_insights(parsed_logs):
+def get_app_insights(parsed_logs):
     strategy = None
     generation_attempts = 0
     total_found = 0
     strategy_counts = {}
 
     for entry in parsed_logs:
-        if entry["type"] == "algorithm":
-            strategy = entry["algo"]
+        try:
+            if entry["type"] == "algorithm":
+                strategy = entry["algo"]
 
-        elif entry["type"] == "summary":
-            generation_attempts += 1
-            total_found += entry["found"]
+            elif entry["type"] == "summary":
+                generation_attempts += 1
+                total_found += entry["found"]
 
-            used = strategy if strategy else "Unknown"
-            strategy_counts[used] = strategy_counts.get(used, 0) + 1
+                used = strategy if strategy else "Unknown"
+                strategy_counts[used] = strategy_counts.get(used, 0) + 1
 
-            strategy = None
+                strategy = None
+        except Exception as e:
+            print(f"Warning: Failed to process entry: {entry}\n  Reason: {e}") 
 
     avg_found = total_found / generation_attempts if generation_attempts else 0
 
@@ -106,6 +123,7 @@ def get_application_insights(parsed_logs):
         "strategy_counts": strategy_counts
     }
 
+#All the other logs in the file
 def get_misc_info(parsed_logs):
     malformed_count = 0
     connect_count = 0

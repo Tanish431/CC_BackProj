@@ -1,6 +1,6 @@
 import re
 
-# RE Patters
+#RE Patters
 REQ_RE = re.compile(r'(?P<method>GET|POST)\s+(?P<endpoint>/\S*)\s+(?P<status>\d{3})\s+(?P<time>[\d\.]+)(µs|Âµs|us|ms|ns)')
 
 USER_RE = re.compile(r'\[(?P<user_id>\d{4}[A-Z0-9]+)\]')
