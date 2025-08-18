@@ -46,9 +46,16 @@ def report_performance(parsed):
         print(f"    - Max Response Time: {stats['max']:.3f} ms")
     print("  Failures and others (!=200):")
     for endpoint, stats in perf["fail"].items():
+        def format_time(val):
+                if val >= 1:
+                    return f"{val:.6f} ms"
+                elif val >= 0.001:
+                    return f"{val*1000:.3f} µs"
+                else:
+                    return f"{val*1_000_000:.0f} ns"
         print(f"  Endpoint: {endpoint}")
-        print(f"    - Average Response Time: {stats['avg']:.6f} ms")
-        print(f"    - Max Response Time: {stats['max']:.6f} ms")
+        print(f"    - Average Response Time: {format_time(stats['avg'])}")
+        print(f"    - Max Response Time: {format_time(stats['max'])}")
 
 def report_users(parsed):
     users = get_user_info(parsed)

@@ -21,7 +21,7 @@ def plot_endpoint_pie(req_info):
         sizes.append(others)
 
     try:
-        plt.figure(figsize=(5,5))
+        plt.figure(figsize=(6,6))
         plt.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=140)
         plt.title("Endpoint Popularity (%)")
         plt.show()
@@ -37,7 +37,7 @@ def plot_strategy_pie(app):
         return
     
     try:
-        plt.figure(figsize=(5,5))
+        plt.figure(figsize=(6,6))
         plt.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=140)
         plt.title("Strategy Usage (%)")
         plt.show()
